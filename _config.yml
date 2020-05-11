@@ -31,8 +31,7 @@ sass:
 permalink: /posts/:title/
 
 texture:
-  title: Russell Sherman
-  tagline: Founder, Developer, Serial Hobbyist
+  title: never enough info
   date_format: "%b %-d, %Y"
   style: black
   showNav: false
