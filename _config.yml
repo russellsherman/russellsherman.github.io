@@ -44,8 +44,6 @@ texture:
     linkedIn: in/neverenoughinfo
     flickr: russsherman
 
-theme: texture
-
 remote_theme: thelehhman/texture
 
 plugins:
