@@ -18,7 +18,7 @@
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
 
-title: Never Enough Info
+title: never enough info
 author: Russell Sherman
 email: russ@neverenough.info
 description: >-
