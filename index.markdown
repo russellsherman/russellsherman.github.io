@@ -1,23 +1,10 @@
 ---
 layout: home 
 ---
-{%- if site.posts.size > 0 -%}
-<ul class="posts">
-	{%- for post in site.posts -%}
-	<li>
-		{%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
-		<div class="post-meta">
-			<a class="post-link" href="{{ post.url | relative_url }}">
-				<h2 class="post-title">{{ post.title | escape }}</h2>
-			</a>
-			<div class="post-date"><i class="icon-calendar"></i>{{ post.date | date: date_format }}</div>
-		</div>
-		<div class="post">
-			{%- if site.show_excerpts -%}
-			{{ post.excerpt }}
-			{%- endif -%}
-		</div>
-	</li>
-	{%- endfor -%}
-</ul>
-{%- endif -%}
+
+### Hello! I'm Russell Sherman.
+I'm a start-up founder, software engineer, information security professional, and serial hobbyist living from Oakland, California.
+
+### About this website
+This site is hosted on [Github Pages](https://pages.github.com/).  I've opted to use [Jekyll](https://jekyllrb.com/), and a theme called [Texture](http://jekyllthemes.org/themes/Texture-Theme/). Hoping to have an appropriate place to share thoughts, learnings, and experiences.
+

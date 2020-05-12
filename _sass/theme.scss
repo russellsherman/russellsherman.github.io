@@ -61,7 +61,7 @@ figcaption {
 
 header {
 	// background-size: cover;
-	padding: 120px 0;
+	padding: 100px 0 50px;
 	color: #fff;
 	overflow: hidden;
 	h2 {
@@ -110,7 +110,7 @@ header {
 	}
 
 	@media screen and  (max-width: $mobileWidth) {
-		margin:0 15px; 
+		margin:0 15px;
 		div.highlighter-rouge {
 			right: 15px;
 		}
@@ -120,7 +120,7 @@ header {
 	}
 
 	@media screen and (max-width: $tabWidth) and (min-width: $mobileWidth){
-		margin:0 40px;	
+		margin:0 40px;
 		div.highlighter-rouge {
 			right: 40px;
 		}
@@ -235,7 +235,7 @@ header {
 		li {
 			// background-color: #ff9f1c;
 			border: 1px solid #fff;
-			float: left;
+			float: right;
 			// margin: 5px;
 			&:not(:first-child){
 				border-left: 0;

@@ -54,9 +54,12 @@
 
 // Textures
 .texture-black {
-    background-image: url('https://live.staticflickr.com/65535/49880875727_9a33bdaceb_b.jpg');
+    background-image: url('https://live.staticflickr.com/65535/49880875727_050d835235_b.jpg');
     background-repeat: no-repeat;
     background-size: cover;
+    h1 {
+        color: #FFF;
+    }
     h2 {
         color: #959595;
     }
@@ -111,4 +114,13 @@
     .post-date {
         color: #ddd;
     }
+}
+
+hr {
+    display: block;
+    height: 1px;
+    border: 0;
+    border-top: 1px solid #000;
+    margin: 1em 0;
+    padding: 0;
 }

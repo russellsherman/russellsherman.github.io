@@ -32,9 +32,10 @@ permalink: /posts/:title/
 
 texture:
   title: never enough info
+  tagline: russell sherman
   date_format: "%b %-d, %Y"
   style: black
-  showNav: false
+  showNav: true
   showPicker: false
 
   social_links:
