@@ -44,7 +44,5 @@ texture:
     linkedIn: in/neverenoughinfo
     flickr: russsherman
 
-remote_theme: thelehhman/texture
-
 plugins:
   - jekyll-seo-tag

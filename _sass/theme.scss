@@ -233,16 +233,9 @@ header {
 	ul {
 		list-style-type: none;
 		li {
-			// background-color: #ff9f1c;
+			display: block;
 			border: 1px solid #fff;
-			float: right;
-			// margin: 5px;
-			&:not(:first-child){
-				border-left: 0;
-			}
 			padding: 10px 25px;
-			// border-radius: 4px;
-			@include fluidType(15px, 17px);
 			transition: background-color .3s ease-in;
 			&:hover {
 				background-color: rgba(#fff, 0.15);
