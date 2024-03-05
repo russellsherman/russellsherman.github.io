@@ -1,0 +1,56 @@
+==================================================================
+https://keybase.io/russellsherman
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of https://neverenough.info
+  * I am russellsherman (https://keybase.io/russellsherman) on keybase.
+  * I have a public key ASAwv-XQ3phJWKlbms9LhVLXz5ayYRQAYsg9PBbhdxF1-Ao
+
+To do so, I am signing this object:
+
+{
+  "body": {
+    "key": {
+      "eldest_kid": "01204514c47f011d44bd4edfcae17395bd4e4a2b01ca240ce943deb4fd4a749d33390a",
+      "host": "keybase.io",
+      "kid": "012030bfe5d0de984958a95b9acf4b8552d7cf96b261140062c83d3c16e1771175f80a",
+      "uid": "ea34ffce83816cd23bf04cd2745c6719",
+      "username": "russellsherman"
+    },
+    "merkle_root": {
+      "ctime": 1709643131,
+      "hash": "304086580396bdb0575ee3916a92c8713404a5d25012855bbc54ee736b125576af382b874a9635f88c939c9680b457d34cc603cedf7374be4228152765d1622c",
+      "hash_meta": "ea14305067be72bab6bef43fc19fdb37d6f808bbb8c822db2379005e23ac0ec5",
+      "seqno": 25520655
+    },
+    "service": {
+      "entropy": "e3kxmBIEHrDCMoaL0+ljRFNq",
+      "hostname": "neverenough.info",
+      "protocol": "https:"
+    },
+    "type": "web_service_binding",
+    "version": 2
+  },
+  "client": {
+    "name": "keybase.io go client",
+    "version": "6.2.5"
+  },
+  "ctime": 1709643209,
+  "expire_in": 504576000,
+  "prev": "e44fce90e84ef0703f5ec417ffccf949c0cb8d06e1ecabbc110c28fd6e7c8b2e",
+  "seqno": 105,
+  "tag": "signature"
+}
+
+which yields the signature:
+
+hKRib2R5hqhkZXRhY2hlZMOpaGFzaF90eXBlCqNrZXnEIwEgML/l0N6YSVipW5rPS4VS18+WsmEUAGLIPTwW4XcRdfgKp3BheWxvYWTESpcCacQg5E/OkOhO8HA/XsQX/8z5ScDLjQbh7Ku8EQwo/W58iy7EIFDOPNj5ZXi6clLoepkn1XbbFOacWmno7zKlsPomzgWvAgHCo3NpZ8RA5BLsax/WBWXCT+RPZvJrq1gMculajKfWgEr1L4se/dugzATI5kj6Xl2A7+yZnDzsyVw91vqFWPiQeZQ2WayCDahzaWdfdHlwZSCkaGFzaIKkdHlwZQildmFsdWXEIHl7dMZR+FZtmPwR4lRtMYDOwStMp8I2vaLAAKaO0Fplo3RhZ80CAqd2ZXJzaW9uAQ==
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/russellsherman
+
+==================================================================
