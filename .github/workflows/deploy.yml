@@ -8,8 +8,13 @@ name: Build and deploy
 # Leaving it on "Deploy from a branch" means this workflow uploads an artifact
 # that nothing ever publishes.
 #
-# public/CNAME carries the neverenough.info custom domain into dist/, so the
-# domain survives the switch.
+# The neverenough.info custom domain lives in Settings → Pages, NOT in the
+# repo. Branch-based publishing used to read the CNAME file out of the
+# published branch and set the domain from it; Actions-based publishing does
+# not, and switching the source cleared the setting — which is how the domain
+# broke once already. public/CNAME still ships in dist/ (harmless, and it
+# matters again if this ever moves back to branch publishing) but nothing
+# reads it. If the domain 404s with "Site not found", re-enter it in Settings.
 
 on:
   push:
@@ -29,13 +34,25 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+### Action versions
+#
+# Every action here is on a major that runs on the Node 24 action runtime.
+# Anything still on the Node 20 runtime (checkout@v4, setup-node@v4,
+# upload-pages-artifact@v3, deploy-pages@v4) logs a deprecation warning on
+# every run. This is the *action* runtime — unrelated to .nvmrc, which
+# controls the Node the build itself uses.
+#
+# setup-node@v5 added implicit caching driven by package.json
+# `packageManager`; `cache: npm` below is explicit, so that changes nothing
+# here. Keep it explicit.
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # Kept in step with .nvmrc, package.json `engines`, and the
           # devcontainer image. Bump all four together.
@@ -55,7 +72,10 @@ jobs:
         run: npm run verify
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        # v4 stopped including dotfiles in the artifact. dist/ has none, and
+        # Pages-via-Actions doesn't need a .nojekyll. If that ever changes,
+        # this action takes `include-hidden-files: true` as of v5.
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ./dist
 
@@ -67,9 +87,9 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -89,4 +109,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
