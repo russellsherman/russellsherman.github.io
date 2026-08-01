@@ -8,7 +8,13 @@
     "Note INP is a field metric and cannot be measured in a lab run; total-",
     "blocking-time is the standard lab proxy and is asserted in its place.",
     "Chromium comes from the Playwright install — the `lhci` npm script exports",
-    "CHROME_PATH so it is found in-container and on a host machine alike."
+    "CHROME_PATH so it is found in-container and on a host machine alike.",
+    "chromeFlags: GitHub's ubuntu-latest runners and this devcontainer both",
+    "restrict unprivileged user namespaces, which Chrome's sandbox needs to",
+    "start — without --no-sandbox it dies with 'No usable sandbox!' before the",
+    "first run. Safe here: the only thing loaded is our own ./dist over",
+    "localhost. --disable-dev-shm-usage avoids the small /dev/shm containers",
+    "get, which crashes renderers on heavier pages."
   ],
   "ci": {
     "collect": {
@@ -19,7 +25,10 @@
         "http://localhost/projects/index.html",
         "http://localhost/posts/site-released/index.html"
       ],
-      "numberOfRuns": 3
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": "--no-sandbox --disable-dev-shm-usage"
+      }
     },
     "assert": {
       "assertions": {
