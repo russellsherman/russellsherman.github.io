@@ -1,0 +1,65 @@
+---
+import { getCollection } from 'astro:content';
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { BIO_HEADING, BIO_PARAGRAPHS } from '../lib/bio';
+import {
+  AUTHOR_EMAIL,
+  SITE_DESCRIPTION,
+  SITE_TAGLINE,
+  SITE_TITLE,
+  formatDate,
+} from '../consts';
+
+// R3.1 — the Person and WebSite nodes are emitted by BaseLayout on every
+// page, so the home page needs no extra JSON-LD to satisfy this.
+
+const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
+  (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime(),
+);
+
+const recent = posts.slice(0, 3);
+---
+
+<BaseLayout
+  title={SITE_TITLE}
+  description={SITE_DESCRIPTION}
+  heading={SITE_TITLE}
+  tagline={SITE_TAGLINE}
+  showSocial={true}
+>
+  <div class="prose">
+    {/* R2.1 — h2 under the page's single h1, which is the hero heading. */}
+    <h2>{BIO_HEADING}</h2>
+    {BIO_PARAGRAPHS.map((paragraph) => <p>{paragraph}</p>)}
+    <p>
+      You can reach me at <a href={`mailto:${AUTHOR_EMAIL}`}>{AUTHOR_EMAIL}</a>.
+    </p>
+
+    {
+      recent.length > 0 && (
+        <section>
+          <h2>Recent writing</h2>
+          <ul class="posts">
+            {recent.map((post) => (
+              <li>
+                <div class="post-meta">
+                  <h3 class="post-title">
+                    <a href={`/posts/${post.id}/`}>{post.data.title}</a>
+                  </h3>
+                  <p class="post-date">
+                    <time datetime={post.data.pubDate.toISOString()}>
+                      {formatDate(post.data.pubDate)}
+                    </time>
+                  </p>
+                </div>
+                <p>{post.data.description}</p>
+              </li>
+            ))}
+          </ul>
+          <p><a href="/blog/">All writing →</a></p>
+        </section>
+      )
+    }
+  </div>
+</BaseLayout>

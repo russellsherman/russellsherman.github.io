@@ -1,0 +1,41 @@
+{
+  "//": [
+    "R7.2 — Core Web Vitals budgets, gated in CI.",
+    "Runs against ./dist via lhci's own static server, so it measures the same",
+    "bytes GitHub Pages serves. Left on Lighthouse's default mobile form factor",
+    "and 4x-CPU / Slow-4G throttling, because 'good on mobile' is the stated",
+    "requirement and the desktop preset would quietly relax it.",
+    "Note INP is a field metric and cannot be measured in a lab run; total-",
+    "blocking-time is the standard lab proxy and is asserted in its place.",
+    "Chromium comes from the Playwright install — the `lhci` npm script exports",
+    "CHROME_PATH so it is found in-container and on a host machine alike."
+  ],
+  "ci": {
+    "collect": {
+      "staticDistDir": "./dist",
+      "url": [
+        "http://localhost/index.html",
+        "http://localhost/blog/index.html",
+        "http://localhost/projects/index.html",
+        "http://localhost/posts/site-released/index.html"
+      ],
+      "numberOfRuns": 3
+    },
+    "assert": {
+      "assertions": {
+        "largest-contentful-paint": ["error", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["error", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["error", { "maxNumericValue": 200 }],
+        "first-contentful-paint": ["warn", { "maxNumericValue": 1800 }],
+
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 1 }],
+        "categories:seo": ["error", { "minScore": 1 }],
+        "categories:best-practices": ["warn", { "minScore": 0.9 }]
+      }
+    },
+    "upload": {
+      "target": "temporary-public-storage"
+    }
+  }
+}

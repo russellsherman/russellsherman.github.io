@@ -1,0 +1,72 @@
+---
+import BaseLayout from './BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import { blogPostingNode, breadcrumbNode } from '../lib/schema';
+import { AUTHOR_EMAIL, SITE_URL, formatDate } from '../consts';
+
+interface Props {
+  title: string;
+  description: string;
+  pubDate: Date;
+  updatedDate?: Date;
+  tags?: string[];
+}
+
+const { title, description, pubDate, updatedDate, tags = [] } = Astro.props;
+
+const canonical = new URL(Astro.url.pathname, SITE_URL).href;
+
+const jsonLd = [
+  blogPostingNode({ title, description, canonical, pubDate, updatedDate, tags }),
+  breadcrumbNode([
+    { name: 'Home', url: `${SITE_URL}/` },
+    { name: 'Blog', url: `${SITE_URL}/blog/` },
+    { name: title, url: canonical },
+  ]),
+];
+---
+
+<BaseLayout
+  title={title}
+  description={description}
+  heading={title}
+  lede={description}
+  jsonLd={jsonLd}
+>
+  <Fragment slot="hero-meta">
+    <p class="post-date">
+      <Icon name="calendar" />
+      <span>
+        Published on <time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+        {
+          updatedDate && (
+            <Fragment>
+              {' · updated '}
+              <time datetime={updatedDate.toISOString()}>{formatDate(updatedDate)}</time>
+            </Fragment>
+          )
+        }
+      </span>
+    </p>
+    {
+      tags.length > 0 && (
+        <ul class="post-tags">
+          {tags.map((tag) => (
+            <li>{tag}</li>
+          ))}
+        </ul>
+      )
+    }
+  </Fragment>
+
+  <!-- R2.2 — the post body is an <article>, addressable on its own. -->
+  <article class="prose">
+    <slot />
+
+    <hr />
+    <p class="post-footer">
+      I'd be more than happy to discuss any questions, comments or concerns; please feel
+      free to reach out at <a href={`mailto:${AUTHOR_EMAIL}`}>{AUTHOR_EMAIL}</a>.
+    </p>
+  </article>
+</BaseLayout>

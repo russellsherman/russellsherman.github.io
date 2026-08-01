@@ -1,0 +1,26 @@
+---
+import Icon from './Icon.astro';
+import { AUTHOR_NAME, SOCIAL } from '../consts';
+
+const profiles = [
+  { href: SOCIAL.github, icon: 'github' as const, label: `${AUTHOR_NAME} on GitHub` },
+  { href: SOCIAL.linkedin, icon: 'linkedin' as const, label: `${AUTHOR_NAME} on LinkedIn` },
+  {
+    href: SOCIAL.x,
+    icon: 'x' as const,
+    label: `${AUTHOR_NAME} on X (formerly Twitter)`,
+  },
+];
+---
+
+<ul class="social">
+  {
+    profiles.map((profile) => (
+      <li>
+        <a href={profile.href} rel="me noopener">
+          <Icon name={profile.icon} label={profile.label} />
+        </a>
+      </li>
+    ))
+  }
+</ul>

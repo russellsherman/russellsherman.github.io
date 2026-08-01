@@ -1,0 +1,38 @@
+---
+/**
+ * R2.2 — a real <nav> landmark with an accessible name, not a bare div.
+ * `aria-current="page"` marks the active link for both assistive tech and
+ * the hover style, so the current section is discoverable without JS.
+ */
+/*
+ * Paths match the old Jekyll routes exactly (`/blog/` index, `/posts/:slug/`
+ * permalinks) so the conversion does not break any existing inbound link
+ * or invalidate an already-indexed canonical (R1.4).
+ */
+const links = [
+  { href: '/', label: 'Home' },
+  { href: '/blog/', label: 'Blog' },
+  { href: '/projects/', label: 'Projects' },
+];
+
+const here = Astro.url.pathname;
+
+function isCurrent(href: string): boolean {
+  if (href === '/') return here === '/';
+  return here === href || here.startsWith(href);
+}
+---
+
+<nav class="navbar" aria-label="Main">
+  <ul>
+    {
+      links.map((link) => (
+        <li>
+          <a href={link.href} aria-current={isCurrent(link.href) ? 'page' : undefined}>
+            {link.label}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</nav>

@@ -1,0 +1,21 @@
+---
+import { buildGraph, type JsonLdNode } from '../lib/schema';
+
+interface Props {
+  nodes?: JsonLdNode[];
+}
+
+const { nodes = [] } = Astro.props;
+
+/*
+ * R3.4 — this is rendered into the HTML at build time, never injected by
+ * client JS, so it is present in `curl` output and not only in the DOM.
+ *
+ * `<` is escaped to < so a string inside the graph can never terminate
+ * the script element early. This is the one real injection risk with
+ * inline JSON-LD and JSON.stringify does not handle it.
+ */
+const graph = buildGraph(nodes).replace(/</g, '\\u003c');
+---
+
+<script type="application/ld+json" is:inline set:html={graph} />

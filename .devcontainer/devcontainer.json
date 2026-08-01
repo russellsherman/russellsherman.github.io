@@ -1,0 +1,62 @@
+{
+  "name": "personal-site",
+
+  // Prebuilt image with Node 22 already installed. Astro 7 requires Node 22+.
+  //
+  // Node 24 became Active LTS in October 2025, so by the "even-numbered
+  // current LTS" rule this is due to be re-pinned to 1-24-bookworm. Held at
+  // 22 for now because package.json declares `>=22.12.0` and CI runs 22;
+  // bump all three together, not one at a time.
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
+
+  // Installs the `claude` CLI. Pinned to the feature's 1.x line; the feature
+  // itself installs the latest CLI, which self-updates in place.
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
+  },
+
+  "forwardPorts": [4321], // Astro dev server default
+  "portsAttributes": {
+    "4321": { "label": "astro-dev", "onAutoForward": "openBrowser" }
+  },
+
+  // `npm ci` (not `install`) for byte-identical node_modules per worktree —
+  // it matters more when N agents are each creating an environment.
+  //
+  // Chromium comes from Playwright (a devDependency, so `npx playwright`
+  // resolves locally instead of fetching the package at create time) which
+  // is what lets Lighthouse CI run in-container for R7.2.
+  "postCreateCommand": "npm ci && npx playwright install --with-deps chromium",
+
+  // Keep node_modules container-local rather than on the bind-mounted
+  // worktree, so parallel worktrees never fight over the same install and a
+  // linux install never overwrites a host macOS one (sharp ships native
+  // binaries — this is not theoretical).
+  "mounts": [
+    "source=${localWorkspaceFolderBasename}-node-modules,target=${containerWorkspaceFolder}/node_modules,type=volume"
+  ],
+  // The named volume is owned by root on first create; hand it to `node`
+  // before postCreateCommand tries to write into it.
+  "onCreateCommand": "sudo chown -R node:node ${containerWorkspaceFolder}/node_modules",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "astro-build.astro-vscode",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "github.vscode-github-actions",
+        "GitHub.vscode-pull-request-github"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" }
+      }
+    }
+  },
+
+  // Non-root for sane file permissions with mounted worktrees.
+  "remoteUser": "node"
+}
