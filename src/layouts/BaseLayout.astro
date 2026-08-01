@@ -1,0 +1,144 @@
+---
+import { Image } from 'astro:assets';
+
+import Nav from '../components/Nav.astro';
+import SocialLinks from '../components/SocialLinks.astro';
+import JsonLd from '../components/JsonLd.astro';
+import type { JsonLdNode } from '../lib/schema';
+import { SITE_TITLE, SITE_URL } from '../consts';
+import hero from '../assets/umeda_sky.jpeg';
+
+import '../styles/global.css';
+
+interface Props {
+  /** <title> and OG title. Must be unique across the site (R2.4). */
+  title: string;
+  /** <meta name="description">. Must be unique across the site (R2.4). */
+  description: string;
+  /** The single <h1> for this page (R2.1). Rendered in the hero. */
+  heading: string;
+  /** Optional line under the heading. */
+  tagline?: string;
+  /** Optional lede under the tagline (used by posts for the description). */
+  lede?: string;
+  /** Extra JSON-LD nodes appended to the Person + WebSite graph (R3). */
+  jsonLd?: JsonLdNode[];
+  /** Social profile links in the hero — home page only, to avoid repetition. */
+  showSocial?: boolean;
+}
+
+const {
+  title,
+  description,
+  heading,
+  tagline,
+  lede,
+  jsonLd = [],
+  showSocial = false,
+} = Astro.props;
+
+// R1.4 — exactly one canonical per page, always absolute. Derived from
+// `site` + the current path so it cannot drift from the sitemap.
+const canonical = new URL(Astro.url.pathname, SITE_URL).href;
+
+const ogTitle = title === SITE_TITLE ? title : `${title} · ${SITE_TITLE}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>{ogTitle}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+
+    <link rel="icon" href="/assets/img/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16x16.png" />
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={SITE_TITLE} />
+    <meta property="og:title" content={ogTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+    <!-- /feed.xml, not /rss.xml — preserves the jekyll-feed URL. -->
+    <link rel="alternate" type="application/rss+xml" title={SITE_TITLE} href="/feed.xml" />
+
+    <!--
+      R7.1 — the font is the only external request on the page and is
+      preconnected rather than render-blocking on a cold DNS lookup.
+      `display=swap` keeps text painted while it loads.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,wght@0,400;0,700;1,400&display=swap"
+    />
+
+    <JsonLd nodes={jsonLd} />
+
+    <slot name="head" />
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- R2.2 — real landmark elements throughout, not generic divs. -->
+    <header class="site-header">
+      <Image
+        class="site-header__bg"
+        src={hero}
+        alt=""
+        widths={[768, 1280, 2048]}
+        sizes="100vw"
+        loading="eager"
+        fetchpriority="high"
+        layout="none"
+      />
+
+      <div class="container">
+        <Nav />
+      </div>
+
+      <div class="container">
+        <h1>{heading}</h1>
+        {tagline && <p class="site-header__tagline">{tagline}</p>}
+        {lede && <p class="site-header__description">{lede}</p>}
+        <slot name="hero-meta" />
+        {showSocial && <SocialLinks />}
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="container">
+        <slot />
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <SocialLinks />
+        <p>
+          &copy; {new Date().getFullYear()} Russell Sherman. Built with{' '}
+          <a href="https://astro.build">Astro</a>.
+        </p>
+        <p>
+          <!--
+            R4.3 — llms.txt must be linked from at least one crawled page,
+            not only listed in the sitemap. The footer puts it on every page.
+          -->
+          <a href="/llms.txt">llms.txt</a>{' · '}<a href="/llms-full.txt">llms-full.txt</a>{
+            ' · '
+          }<a href="/feed.xml">RSS</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

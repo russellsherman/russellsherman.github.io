@@ -1,0 +1,92 @@
+name: Build and deploy
+
+# GitHub Pages used to build this repo with its built-in Jekyll pipeline. That
+# pipeline cannot build an Astro site, so deploys now happen from here instead.
+#
+# One-time setup required in the repo before this works:
+#   Settings → Pages → Build and deployment → Source: "GitHub Actions"
+# Leaving it on "Deploy from a branch" means this workflow uploads an artifact
+# that nothing ever publishes.
+#
+# public/CNAME carries the neverenough.info custom domain into dist/, so the
+# domain survives the switch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow GITHUB_TOKEN to deploy to Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never run two deploys at once; don't cancel one in progress mid-publish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Kept in step with .nvmrc, package.json `engines`, and the
+          # devcontainer image. Bump all four together.
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run check
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify requirements (R1–R5, R7.1, R7.3)
+        run: npm run verify
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  # R7.2 — Core Web Vitals budgets. Kept separate from the deploy path: a
+  # perf regression should be loud and visible without blocking a content
+  # fix from shipping. Flip `continue-on-error` to false to make it a gate.
+  lighthouse:
+    needs: build
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run lhci
+
+  deploy:
+    # Only publish from main — PRs get the build and the checks, not a deploy.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

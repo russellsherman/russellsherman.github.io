@@ -1,0 +1,96 @@
+---
+import { getCollection, render } from 'astro:content';
+
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { projectNode } from '../lib/schema';
+import { AUTHOR_EMAIL, SITE_URL, formatDate } from '../consts';
+
+const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
+  (a, b) => a.data.order - b.data.order || b.data.startDate.getTime() - a.data.startDate.getTime(),
+);
+
+// Render each project's body once, up front — Astro components cannot await
+// inside the template.
+const rendered = await Promise.all(
+  projects.map(async (project) => ({
+    project,
+    Content: (await render(project)).Content,
+  })),
+);
+
+const jsonLd = rendered.map(({ project }) =>
+  projectNode({
+    title: project.data.title,
+    description: project.data.description,
+    canonical: new URL(`/projects/#${project.id}`, SITE_URL).href,
+    startDate: project.data.startDate,
+    endDate: project.data.endDate,
+    repo: project.data.repo,
+    demo: project.data.demo,
+  }),
+);
+
+function dateRange(start: Date, end?: Date): string {
+  return `${formatDate(start)} – ${end ? formatDate(end) : 'present'}`;
+}
+---
+
+<BaseLayout
+  title="Projects"
+  description="Things Russell Sherman has built — the problem each one solved, the approach taken, and the stack behind it."
+  heading="Projects"
+  tagline="Things I've built, and why"
+  jsonLd={jsonLd}
+>
+  {
+    rendered.length > 0 ? (
+      rendered.map(({ project, Content }) => (
+        /* R2.2 / R6.3 — each project is a self-contained <article>. */
+        <article class="project" id={project.id}>
+          <h2>{project.data.title}</h2>
+          <p class="post-date">{dateRange(project.data.startDate, project.data.endDate)}</p>
+
+          <dl>
+            {/* R6.2 — the problem leads, before any description of the build. */}
+            <dt>The problem</dt>
+            <dd>{project.data.problem}</dd>
+
+            <dt>Stack</dt>
+            <dd>
+              <ul class="stack">
+                {project.data.stack.map((tool) => (
+                  <li>{tool}</li>
+                ))}
+              </ul>
+            </dd>
+
+            {(project.data.repo || project.data.demo) && (
+              <Fragment>
+                <dt>Links</dt>
+                <dd>
+                  {project.data.repo && <a href={project.data.repo}>Source</a>}
+                  {project.data.repo && project.data.demo && ' · '}
+                  {project.data.demo && <a href={project.data.demo}>Demo</a>}
+                </dd>
+              </Fragment>
+            )}
+          </dl>
+
+          {/* The body carries the "how I thought about it" half of R6.2. */}
+          <div class="prose">
+            <Content />
+          </div>
+        </article>
+      ))
+    ) : (
+      <div class="prose">
+        <h2>Stay tuned.</h2>
+        <p>
+          Nothing written up here yet. In the meantime, my code is on{' '}
+          <a href="https://github.com/russellsherman">GitHub</a>, and I'm reachable at{' '}
+          <a href={`mailto:${AUTHOR_EMAIL}`}>{AUTHOR_EMAIL}</a>.
+        </p>
+      </div>
+    )
+  }
+</BaseLayout>

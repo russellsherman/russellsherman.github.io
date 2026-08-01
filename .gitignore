@@ -1,11 +1,18 @@
-_site
-.sass-cache
-.jekyll-cache
-.jekyll-metadata
-vendor
+# build output
+dist/
+.astro/
+
+# dependencies
+node_modules/
+
+# lighthouse
+.lighthouseci/
+
+# editor / os
 .idea
-*.gem
-.bundle
-Gemfile.lock
 .DS_Store
 
+# env
+.env
+.env.production
+.claude/settings.local.json

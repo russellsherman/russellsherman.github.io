@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { AUTHOR_EMAIL } from '../consts';
+---
+
+<BaseLayout
+  title="Page not found"
+  description="That page doesn't exist. Links to the rest of the site."
+  heading="404"
+  tagline="Page not found"
+>
+  <div class="prose">
+    <p>The requested page could not be found. It may have moved, or never existed.</p>
+    <ul>
+      <li><a href="/">Home</a></li>
+      <li><a href="/blog/">Blog</a></li>
+      <li><a href="/projects/">Projects</a></li>
+    </ul>
+    <p>
+      If you followed a link here from somewhere else, I'd like to know —{' '}
+      <a href={`mailto:${AUTHOR_EMAIL}`}>{AUTHOR_EMAIL}</a>.
+    </p>
+  </div>
+</BaseLayout>
