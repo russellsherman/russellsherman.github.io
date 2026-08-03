@@ -1,8 +1,13 @@
 import { getCollection } from 'astro:content';
 import type { APIRoute } from 'astro';
 
-import { BIO_PARAGRAPHS } from '../lib/bio';
-import { AUTHOR_EMAIL, SITE_TITLE, SITE_URL, formatDate } from '../consts';
+import {
+  AUTHOR_EMAIL,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  SITE_URL,
+  formatDate,
+} from '../consts';
 
 /**
  * R4.1 — /llms.txt: a curated, lean index of the highest-value pages.
@@ -22,22 +27,18 @@ export const GET: APIRoute = async () => {
     (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime(),
   );
 
-  const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
-    (a, b) => a.data.order - b.data.order,
-  );
-
   const lines: string[] = [
     `# ${SITE_TITLE} — Russell Sherman`,
     '',
-    `> ${BIO_PARAGRAPHS[0]}`,
+    // The site's own meta description, so this summary line cannot drift from
+    // what the home page tells every other crawler.
+    `> ${SITE_DESCRIPTION}`,
     '',
     'Personal site and writing. Contact: ' + AUTHOR_EMAIL + '.',
     '',
     '## Key pages',
     '',
-    `- [Home](${abs('/')}): who I am and what I work on.`,
-    `- [Blog](${abs('/blog/')}): index of all writing.`,
-    `- [Projects](${abs('/projects/')}): things I've built, the problem each solved, and the stack.`,
+    `- [Blog](${abs('/')}): the home page — index of all writing.`,
   ];
 
   if (posts.length > 0) {
@@ -47,15 +48,6 @@ export const GET: APIRoute = async () => {
         `- [${post.data.title}](${abs(`/posts/${post.id}/`)}) (${formatDate(
           post.data.pubDate,
         )}): ${post.data.description}`,
-      );
-    }
-  }
-
-  if (projects.length > 0) {
-    lines.push('', '## Projects', '');
-    for (const project of projects) {
-      lines.push(
-        `- [${project.data.title}](${abs(`/projects/#${project.id}`)}): ${project.data.description}`,
       );
     }
   }

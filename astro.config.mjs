@@ -15,6 +15,15 @@ export default defineConfig({
 
   trailingSlash: 'always',
 
+  // The writing index moved from /blog/ to /. That URL was live under Jekyll
+  // and is already indexed, so it keeps working: in a static build Astro emits
+  // a meta-refresh stub at /blog/index.html pointing here. Redirect stubs are
+  // excluded from the sitemap below and from scripts/verify.mjs's content
+  // checks — they are navigation, not pages.
+  redirects: {
+    '/blog': '/',
+  },
+
   integrations: [
     // R5.3 — XML sitemap, referenced from robots.txt.
     sitemap({
@@ -42,7 +51,14 @@ export default defineConfig({
 
   markdown: {
     shikiConfig: {
-      theme: 'solarized-light',
+      /*
+       * Was `solarized-light`, which is unreadable on a black page. Of the
+       * bundled dark themes this is the most neutral — a #121212 background
+       * with no blue or green cast, so a code block reads as the same surface
+       * as the rest of the site rather than as a pasted-in screenshot.
+       * `--color-code-bg` in global.css is kept in step with it.
+       */
+      theme: 'vitesse-dark',
       wrap: true,
     },
   },

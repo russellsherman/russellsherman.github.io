@@ -96,37 +96,6 @@ export function blogPostingNode(post: BlogPostingInput): JsonLdNode {
   };
 }
 
-interface CreativeWorkInput {
-  title: string;
-  description: string;
-  canonical: string;
-  startDate: Date;
-  endDate?: Date;
-  repo?: string;
-  demo?: string;
-}
-
-/**
- * Projects are described as CreativeWork rather than SoftwareApplication:
- * the page is a write-up about the work, not a distributable app listing.
- */
-export function projectNode(project: CreativeWorkInput): JsonLdNode {
-  const sameAs = [project.repo, project.demo].filter(Boolean);
-  return {
-    '@type': 'CreativeWork',
-    '@id': `${project.canonical}#project`,
-    name: project.title,
-    description: project.description,
-    url: project.canonical,
-    dateCreated: project.startDate.toISOString(),
-    ...(project.endDate ? { dateModified: project.endDate.toISOString() } : {}),
-    creator: { '@id': PERSON_ID },
-    isPartOf: { '@id': WEBSITE_ID },
-    mainEntityOfPage: { '@type': 'WebPage', '@id': project.canonical },
-    ...(sameAs.length ? { sameAs } : {}),
-  };
-}
-
 export function breadcrumbNode(
   trail: Array<{ name: string; url: string }>,
 ): JsonLdNode {

@@ -1,7 +1,6 @@
 import { getCollection } from 'astro:content';
 import type { APIRoute } from 'astro';
 
-import { BIO_HEADING, BIO_PARAGRAPHS } from '../lib/bio';
 import {
   AUTHOR_EMAIL,
   AUTHOR_LOCATION,
@@ -15,10 +14,11 @@ import {
  * R4.2 — /llms-full.txt: the full readable content of every page in one file,
  * for deep-context retrieval and RAG.
  *
- * Bodies come straight from the collection entries' raw Markdown, and the
- * home page prose comes from the same module the home page renders, so the
+ * Bodies come straight from the collection entries' raw Markdown, so the
  * acceptance check ("content matches canonical pages") holds by construction
- * rather than by remembering to update this file.
+ * rather than by remembering to update this file. The home page is the post
+ * index and carries no prose of its own, so it contributes no section here —
+ * its posts are the sections that follow.
  */
 
 const abs = (path: string) => new URL(path, SITE_URL).href;
@@ -26,10 +26,6 @@ const abs = (path: string) => new URL(path, SITE_URL).href;
 export const GET: APIRoute = async () => {
   const posts = (await getCollection('blog', ({ data }) => !data.draft)).sort(
     (a, b) => b.data.pubDate.getTime() - a.data.pubDate.getTime(),
-  );
-
-  const projects = (await getCollection('projects', ({ data }) => !data.draft)).sort(
-    (a, b) => a.data.order - b.data.order,
   );
 
   const out: string[] = [
@@ -40,12 +36,6 @@ export const GET: APIRoute = async () => {
     `Contact: ${AUTHOR_EMAIL}`,
     'License: full text reproduced with attribution — see ' + abs('/ai.txt') + '.',
     '',
-    '---',
-    '',
-    `## ${BIO_HEADING}`,
-    `URL: ${abs('/')}`,
-    '',
-    ...BIO_PARAGRAPHS.map((paragraph) => `${paragraph}\n`),
   ];
 
   for (const post of posts) {
@@ -59,25 +49,6 @@ export const GET: APIRoute = async () => {
       ...(post.data.tags.length ? [`Tags: ${post.data.tags.join(', ')}`] : []),
       '',
       (post.body ?? '').trim(),
-      '',
-    );
-  }
-
-  for (const project of projects) {
-    out.push(
-      '---',
-      '',
-      `## ${project.data.title}`,
-      `URL: ${abs(`/projects/#${project.id}`)}`,
-      `Started: ${formatDate(project.data.startDate)}`,
-      ...(project.data.endDate ? [`Ended: ${formatDate(project.data.endDate)}`] : []),
-      `Stack: ${project.data.stack.join(', ')}`,
-      ...(project.data.repo ? [`Source: ${project.data.repo}`] : []),
-      ...(project.data.demo ? [`Demo: ${project.data.demo}`] : []),
-      '',
-      `Problem: ${project.data.problem}`,
-      '',
-      (project.body ?? '').trim(),
       '',
     );
   }

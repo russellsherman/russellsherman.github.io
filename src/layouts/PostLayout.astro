@@ -18,9 +18,10 @@ const canonical = new URL(Astro.url.pathname, SITE_URL).href;
 
 const jsonLd = [
   blogPostingNode({ title, description, canonical, pubDate, updatedDate, tags }),
+  // Two crumbs, not three: the blog index and the site root are the same URL
+  // now, and a breadcrumb trail that lists one destination twice is wrong.
   breadcrumbNode([
-    { name: 'Home', url: `${SITE_URL}/` },
-    { name: 'Blog', url: `${SITE_URL}/blog/` },
+    { name: 'Blog', url: `${SITE_URL}/` },
     { name: title, url: canonical },
   ]),
 ];
