@@ -21,8 +21,6 @@
       "staticDistDir": "./dist",
       "url": [
         "http://localhost/index.html",
-        "http://localhost/blog/index.html",
-        "http://localhost/projects/index.html",
         "http://localhost/posts/site-released/index.html"
       ],
       "numberOfRuns": 3,

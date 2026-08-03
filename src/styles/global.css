@@ -46,25 +46,51 @@ figure {
 
 /* ------------------------------------------------------------- tokens */
 
+/*
+ * Palette: a default terminal, not a designed dark mode.
+ *
+ * Values are the xterm/ANSI defaults rather than tuned brand colors — black
+ * background, ANSI 7 ("white", which is really light gray) for body text,
+ * ANSI 15 (bright white) for headings, ANSI 6/14 (cyan / bright cyan) for
+ * links. Terminals have exactly one accent convention for a link and it is
+ * cyan; using it is what makes this read as a console instead of as a dark
+ * theme that happens to be monospace.
+ *
+ * Contrast, measured against #000: #ccc 13.1:1, #999 7.4:1, #00cdcd 10.6:1 —
+ * all clear of the 4.5:1 WCAG AA floor with room to spare. Worth noting that
+ * #999 was the *original* theme's muted gray, dropped earlier because it only
+ * managed 2.84:1 on white. Inverting the background hands it back.
+ */
 :root {
-  --color-text: #000;
-  /*
-   * The original theme used #999 for muted text and links. On white that is
-   * 2.84:1, well under the 4.5:1 WCAG AA floor for body text — Lighthouse
-   * flags it on every page. #767676 is the darkest-possible gray that still
-   * reads as "muted" while clearing 4.5:1, so the look survives and the
-   * contrast requirement is actually met.
-   */
-  --color-text-muted: #767676;
-  --color-heading: #222;
-  --color-link: #767676;
-  --color-rule: #eee;
+  color-scheme: dark;
+
+  --color-bg: #000;
+  --color-text: #ccc;
+  --color-text-muted: #999;
+  --color-heading: #fff;
+  --color-link: #00cdcd;
+  /* ANSI bright cyan — hover/focus, the way a terminal brightens a bold color. */
+  --color-link-bright: #0ff;
+  --color-rule: #333;
+  /* Text sitting on the hero photo, which is its own dark surface. */
   --color-inverse: #fff;
   --color-inverse-muted: #959595;
+  --color-code-bg: #121212;
 
-  --font-body: 'Nunito Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI',
-    Helvetica, Arial, sans-serif;
-  --font-mono: 'Consolas', Menlo, Monaco, 'Courier New', monospace;
+  /*
+   * The site sets in monospace end to end, so there is exactly one family:
+   * the body font *is* the mono font.
+   *
+   * A system stack rather than a webfont, on purpose. Nunito Sans was the
+   * only external request the page made; dropping it removes that request,
+   * its two preconnects, and the swap-in reflow that came with it (R7.1).
+   * `ui-monospace` resolves to whatever the OS considers its console face
+   * (SF Mono on Apple, Cascadia Mono on Windows) before the named fallbacks,
+   * so this reads as native rather than as one imposed typeface.
+   */
+  --font-mono: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'DejaVu Sans Mono', 'Liberation Mono', 'Courier New', monospace;
+  --font-body: var(--font-mono);
 
   /* Reproduces the theme's container margin ladder. */
   --gutter: 150px;
@@ -103,19 +129,33 @@ body {
   font-size: clamp(16px, 15px + 0.3125vw, 19px);
   line-height: 1.55;
   color: var(--color-text);
+  background-color: var(--color-bg);
+  /*
+   * Subpixel antialiasing is what makes light-on-dark text look bolder and
+   * bloomier than it should. Terminals render thin; keep it thin.
+   */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Inverse video, the way a terminal marks a selection. */
+::selection {
+  background-color: var(--color-text);
+  color: var(--color-bg);
 }
 
 a {
   color: var(--color-link);
   text-decoration: none;
   border-bottom: 0.5px solid transparent;
-  transition: border-bottom-color 0.4s;
+  transition:
+    color 0.3s,
+    border-bottom-color 0.4s;
 }
 
 a:hover {
-  border-bottom-color: var(--color-link);
+  color: var(--color-link-bright);
+  border-bottom-color: var(--color-link-bright);
 }
 
 /* Keyboard focus was invisible in the original theme. */
@@ -158,7 +198,8 @@ hr {
   display: block;
   height: 1px;
   border: 0;
-  border-top: 1px solid var(--color-text);
+  /* A #ccc rule on black reads as a bright bar; the divider color is enough. */
+  border-top: 1px solid var(--color-rule);
   margin: 1em 0;
   padding: 0;
 }
@@ -174,7 +215,7 @@ blockquote {
   margin: 1.5em 0;
   padding-left: 1.25em;
   border-left: 3px solid var(--color-rule);
-  color: #333;
+  color: var(--color-text-muted);
 }
 
 /* ---------------------------------------------------------- container */
@@ -192,7 +233,7 @@ blockquote {
   color: var(--color-inverse);
   overflow: hidden;
   isolation: isolate;
-  background-color: #1a1a1a;
+  background-color: var(--color-bg);
 }
 
 /*
@@ -250,56 +291,6 @@ blockquote {
   color: #ddd;
   margin-top: 0.5em;
   margin-bottom: 1.3em;
-}
-
-/* ---------------------------------------------------------------- nav */
-
-.navbar {
-  position: absolute;
-  top: 0;
-  right: 5vw;
-  z-index: 1;
-}
-
-.navbar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-}
-
-.navbar li {
-  display: block;
-}
-
-.navbar a {
-  display: block;
-  color: inherit;
-  border: 1px solid var(--color-inverse);
-  border-bottom-width: 1px;
-  padding: 10px 25px;
-  transition: background-color 0.3s ease-in;
-}
-
-.navbar li + li a {
-  border-left: 0;
-}
-
-.navbar a:hover,
-.navbar a[aria-current='page'] {
-  background-color: rgb(255 255 255 / 0.15);
-  border-bottom-color: var(--color-inverse);
-}
-
-@media screen and (max-width: 768px) {
-  .navbar {
-    position: static;
-    margin-bottom: 40px;
-  }
-
-  .navbar ul {
-    flex-wrap: wrap;
-  }
 }
 
 /* --------------------------------------------------------------- icons */
@@ -373,12 +364,12 @@ main {
 }
 
 .prose a {
-  color: var(--color-text);
-  border-bottom: 1px solid var(--color-text-muted);
+  color: var(--color-link);
+  border-bottom: 1px solid currentColor;
 }
 
 .prose a:hover {
-  color: var(--color-text-muted);
+  color: var(--color-link-bright);
 }
 
 .prose img {
@@ -428,7 +419,7 @@ main {
 }
 
 .post-title a:hover {
-  color: var(--color-text-muted);
+  color: var(--color-link-bright);
 }
 
 .post-date {
@@ -465,55 +456,24 @@ main {
 .post-footer {
   margin-top: 2.5em;
   font-style: italic;
-  color: #333;
-}
-
-/* ----------------------------------------------------------- projects */
-
-.project {
-  padding-bottom: 30px;
-}
-
-.project:not(:last-child) {
-  border-bottom: 1px solid var(--color-rule);
-  margin-bottom: 30px;
-}
-
-.project dl {
-  margin: 1em 0 0;
-}
-
-.project dt {
-  font-weight: 700;
-  margin-top: 0.8em;
-}
-
-.project dd {
-  margin: 0.2em 0 0;
-}
-
-.stack {
-  list-style: none;
-  padding: 0;
-  margin: 0.4em 0 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.stack li {
-  font-size: clamp(15px, 14.333px + 0.2083vw, 17px);
-  background-color: var(--color-rule);
-  border-radius: 2px;
-  padding: 4px 12px;
+  color: var(--color-text-muted);
 }
 
 /* --------------------------------------------------------------- code */
 
 code {
+  /*
+   * `font-family` stays declared even though the body already inherits it —
+   * this rule should keep working if the body font ever stops being mono.
+   *
+   * No 0.9em step-down any more. That existed to reconcile mono glyphs with
+   * surrounding proportional text; now that the prose is the same family,
+   * shrinking inline code just makes it look like a rendering bug. The
+   * background tint is what marks it as code.
+   */
   font-family: var(--font-mono);
-  font-size: 0.9em;
-  background-color: #f4f4f4;
+  background-color: var(--color-code-bg);
+  color: var(--color-heading);
   padding: 0.15em 0.35em;
   border-radius: 2px;
 }
@@ -525,7 +485,14 @@ pre {
   margin: 40px 0;
   padding: 25px;
   overflow-x: auto;
-  background-color: #fdf6e3; /* solarized-light, matching the old theme */
+  /*
+   * Shiki writes its own background onto the <pre> inline, so this only shows
+   * on a block it didn't highlight. Matched to the `vitesse-dark` theme set in
+   * astro.config.mjs (#121212) so the two cases look the same.
+   */
+  background-color: var(--color-code-bg);
+  /* On a black page a near-black block needs an edge to read as a block. */
+  border: 1px solid var(--color-rule);
 }
 
 pre code {
@@ -588,8 +555,9 @@ pre code {
   top: -100px;
   left: 0;
   z-index: 10;
-  background: #fff;
-  color: #000;
+  /* Inverse video, so it stays obvious against the dark page. */
+  background: var(--color-heading);
+  color: var(--color-bg);
   padding: 12px 20px;
   border-bottom: 0;
 }

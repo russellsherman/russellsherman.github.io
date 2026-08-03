@@ -30,34 +30,10 @@ const blog = defineCollection({
   }),
 });
 
-/**
- * Projects / case studies.
- *
- * The schema encodes R6.2 structurally — a project cannot be published
- * without stating the problem it solved, how it was approached, and its
- * stack. Content requirements enforced by the type system don't rot.
+/*
+ * There was a `projects` collection here (R6.2 — problem, approach, stack).
+ * The site is now the blog and nothing else, so it and /projects/ are gone;
+ * git history has the schema if projects ever come back.
  */
-const projects = defineCollection({
-  loader: glob({
-    pattern: '**/*.{md,mdx}',
-    base: './src/content/projects',
-  }),
-  schema: z.object({
-    title: z.string(),
-    description: z.string(),
-    /** R6.2 — lead with the problem. */
-    problem: z.string(),
-    /** R6.2 — the stack, listed explicitly. */
-    stack: z.array(z.string()).min(1),
-    /** R6.2 — links to source and/or a demo. */
-    repo: z.string().url().optional(),
-    demo: z.string().url().optional(),
-    startDate: z.coerce.date(),
-    endDate: z.coerce.date().optional(),
-    /** Lower numbers sort first on the index. */
-    order: z.number().default(100),
-    draft: z.boolean().default(false),
-  }),
-});
 
-export const collections = { blog, projects };
+export const collections = { blog };

@@ -100,20 +100,36 @@ function urlPathFor(file) {
   return `/${rel}`;
 }
 
-const pages = htmlFiles.map((file) => {
+const allPages = htmlFiles.map((file) => {
   const html = null;
   return { file, urlPath: urlPathFor(file), html };
 });
 
-for (const page of pages) {
+for (const page of allPages) {
   page.html = await readFile(page.file, 'utf8');
   page.$ = cheerio.load(page.html);
 }
 
+/**
+ * Redirect stubs are the meta-refresh pages Astro emits for `redirects` in a
+ * static build. They are navigation, not content: no h1, no canonical, no
+ * <main> — so holding them to the page checks below would fail every one of
+ * them for no reason. They get their own check instead (see "redirects").
+ */
+const isRedirectStub = (page) => page.$('meta[http-equiv="refresh"]').length > 0;
+
+const redirectPages = allPages.filter(isRedirectStub);
+
+/** Real pages — everything the reader can actually land on and read. */
+const pages = allPages.filter((p) => !isRedirectStub(p));
+
 /** Content pages, i.e. everything except the 404. */
 const contentPages = pages.filter((p) => p.urlPath !== '/404.html');
 
-const EXPECTED_ROUTES = ['/', '/blog/', '/projects/', '/posts/site-released/'];
+const EXPECTED_ROUTES = ['/', '/posts/site-released/'];
+
+/** Legacy URL -> where it must now land. */
+const EXPECTED_REDIRECTS = { '/blog/': '/' };
 
 /* ---------------------------------------------------------------- R1 */
 
@@ -130,9 +146,7 @@ check('R1.1', 'primary content present in static HTML, no JS required', () => {
   // Known body phrases that must appear in the raw bytes. If a framework
   // change ever moves rendering client-side, these disappear.
   const expectations = [
-    ['/', 'start-up founder, software engineer'],
-    ['/blog/', 'hello, world'],
-    ['/projects/', 'Stay tuned'],
+    ['/', 'hello, world'],
     ['/posts/site-released/', "I've decided to boot up this site"],
   ];
   for (const [route, phrase] of expectations) {
@@ -218,16 +232,37 @@ check('R2.1', 'heading levels nest without skipping', () => {
 });
 
 check('R2.2', 'landmark elements present', () => {
+  // <nav> is deliberately absent site-wide: a blog index plus its posts has
+  // nowhere to navigate to that isn't already a link in the content. If a
+  // navbar ever returns, add 'nav' back here and require its accessible name.
   for (const page of pages) {
-    for (const landmark of ['header', 'nav', 'main', 'footer']) {
+    for (const landmark of ['header', 'main', 'footer']) {
       assert(page.$(landmark).length > 0, `${page.urlPath} has no <${landmark}>`);
     }
+    // Any <nav> that does exist must still be named, or it is a bare landmark.
+    for (const nav of page.$('nav').toArray()) {
+      assert(
+        page.$(nav).attr('aria-label') || page.$(nav).attr('aria-labelledby'),
+        `${page.urlPath} has a <nav> with no accessible name`,
+      );
+    }
+  }
+  return 'header/main/footer on every page';
+});
+
+check('R2.2', 'a skip link targets the main landmark', () => {
+  // With no navbar this is the only bypass mechanism, so it has to be right:
+  // the target must exist on the page it links to.
+  for (const page of pages) {
+    const href = page.$('a.skip-link').attr('href');
+    assert(href, `${page.urlPath} has no skip link`);
+    assert(href.startsWith('#'), `${page.urlPath} skip link is not a fragment: ${href}`);
     assert(
-      page.$('nav[aria-label]').length > 0,
-      `${page.urlPath} <nav> has no accessible name`,
+      page.$(href).length === 1,
+      `${page.urlPath} skip link points at ${href}, which does not exist`,
     );
   }
-  return 'header/nav/main/footer on every page';
+  return 'skip link resolves on every page';
 });
 
 check('R2.3', 'no FAQPage schema anywhere in the output', () => {
@@ -428,15 +463,22 @@ check('R4.2', 'llms-full.txt exists and its content matches canonical pages', ()
     includesText(llmsFull, phrase),
     `llms-full.txt is missing post body text: "${phrase}"`,
   );
-  // Home page bio must match what the home page renders.
-  const bio = 'start-up founder, software engineer';
+  // The home page is the post index, so "matches canonical pages" means every
+  // post it lists has its full text here.
   const home = pages.find((p) => p.urlPath === '/');
-  assert(includesText(home.html, bio), 'home page no longer contains the bio phrase');
-  assert(
-    includesText(llmsFull, bio),
-    'llms-full.txt bio has drifted from the home page',
-  );
-  return `${(Buffer.byteLength(llmsFull) / 1024).toFixed(1)}KB`;
+  const listed = home
+    .$('.post-title')
+    .toArray()
+    .map((el) => home.$(el).text().trim())
+    .filter(Boolean);
+  assert(listed.length > 0, 'home page lists no posts');
+  for (const title of listed) {
+    assert(
+      includesText(llmsFull, title),
+      `llms-full.txt is missing "${title}", which the home page links to`,
+    );
+  }
+  return `${listed.length} post(s), ${(Buffer.byteLength(llmsFull) / 1024).toFixed(1)}KB`;
 });
 
 check('R4.3', 'llms.txt is in the sitemap and linked from a rendered page', () => {
@@ -564,6 +606,39 @@ check('links', 'every internal link resolves to a built file', () => {
   }
   assert(broken.length === 0, `broken internal links:\n    ${broken.join('\n    ')}`);
   return 'no broken internal links';
+});
+
+check('redirects', 'legacy URLs still resolve and point at the right page', () => {
+  for (const [from, to] of Object.entries(EXPECTED_REDIRECTS)) {
+    const stub = redirectPages.find((p) => p.urlPath === from);
+    assert(stub, `no redirect emitted for ${from} — that URL would now 404`);
+
+    // Astro writes `content="0;url=/"`. Accept any delay, require the target.
+    const content = stub.$('meta[http-equiv="refresh"]').attr('content') ?? '';
+    const target = content.match(/url=(.+)$/i)?.[1]?.trim();
+    assert(target, `${from} has a refresh meta with no url: "${content}"`);
+
+    const targetPath = target.startsWith('http') ? new URL(target).pathname : target;
+    assert(
+      targetPath === to,
+      `${from} redirects to ${targetPath}, expected ${to}`,
+    );
+    assert(resolveToDist(targetPath), `${from} redirects to ${to}, which is not built`);
+  }
+  return Object.entries(EXPECTED_REDIRECTS)
+    .map(([from, to]) => `${from} -> ${to}`)
+    .join(', ');
+});
+
+check('redirects', 'redirect stubs stay out of the sitemap', () => {
+  // A sitemap that advertises a redirect wastes crawl budget and invites the
+  // "alternate page with proper canonical tag" report in Search Console.
+  const bodies = Object.values(allSitemapText).join('\n');
+  for (const stub of redirectPages) {
+    const url = new URL(stub.urlPath, ORIGIN).href;
+    assert(!bodies.includes(url), `sitemap lists the redirect stub ${stub.urlPath}`);
+  }
+  return `${redirectPages.length} stub(s) excluded`;
 });
 
 check('drafts', 'no draft or template content reached the build', () => {
