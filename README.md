@@ -12,7 +12,7 @@ files (`llms.txt`, `ai.txt`) are a thin layer on top of that, not a substitute f
 | Command            | Does                                                       |
 | ------------------ | ---------------------------------------------------------- |
 | `npm run dev`      | Dev server on <http://localhost:4321>                      |
-| `npm run build`    | Static build to `dist/`                                    |
+| `npm run build`    | Static build to `dist/`, then prints the resume PDF        |
 | `npm run preview`  | Serve `dist/` locally                                      |
 | `npm run check`    | `astro check` — TypeScript + template diagnostics           |
 | `npm run verify`   | Requirement acceptance checks against `dist/`              |
@@ -50,6 +50,84 @@ Q&A content goes in as ordinary headings and prose — **not** `FAQPage` JSON-LD
 retired the FAQ rich result on 2026-05-07, so that markup now chases a feature that no
 longer exists.
 
+## The resume
+
+Edit [`src/content/resume/resume.md`](src/content/resume/resume.md). That is the only
+file. Three published representations fall out of it, and none of them is written by
+hand:
+
+| URL           | What it is                | Built by                                             |
+| ------------- | ------------------------- | ---------------------------------------------------- |
+| `/resume/`    | HTML page, `ProfilePage` JSON-LD | `src/pages/resume/index.astro`                 |
+| `/resume.md`  | Plain Markdown            | `src/pages/resume.md.ts`                             |
+| `/resume.pdf` | Letter-format PDF         | `scripts/build-resume-pdf.mjs`, printing `/resume/`  |
+
+The PDF is not a separate document. It is `/resume/` rendered by headless Chromium under
+the `@media print` block in [`src/styles/global.css`](src/styles/global.css) — so the
+printed layout is edited as CSS, and a change to the Markdown cannot leave a stale PDF
+behind. That step runs as part of `npm run build` for the same reason; it needs Chromium
+once:
+
+```
+npx playwright install chromium
+```
+
+The contact block (name, location, email, profile links) is **not** in the Markdown. It
+is generated from `src/consts.ts` into all three outputs, which is why an email address
+lives in exactly one place; the optional `email`, `phone` and `address` frontmatter
+fields override it per entry. Notes for whoever edits the file go in the frontmatter as
+YAML comments — an HTML comment in the body survives into `/resume.md` and the rendered
+page.
+
+A role is `### Title — Company` followed by one italic line, `_Dates · Location_`. That
+line is styled as a sub-heading on screen and in print, and still reads correctly as
+plain text when the `.md` is piped through `cat`.
+
+Agentic browsers get the Markdown three ways: `<link rel="alternate" type="text/markdown">`
+in the page head, an entry in `llms.txt` that says which representation to prefer, and the
+full text inline in `llms-full.txt`. A static host can't do content negotiation on
+`Accept`, so `/resume.md` as a real URL is the substitute.
+
+### Tailored variants
+
+Copy the template; the filename is the slug.
+
+```
+cp src/content/resume/variants/_template.md src/content/resume/variants/backend.md
+```
+
+That publishes `/resume/backend/`, `/resume/backend.md` and `/resume/backend.pdf` — same
+three outputs, same pipeline. The difference is reach. A variant is **published but
+unlisted**: `noindex, nofollow, noarchive` on the page, dropped from the sitemap by a
+filter in `astro.config.mjs`, absent from `llms.txt` and `llms-full.txt`, and linked from
+nowhere. The URL is the only way in, which is the point — it is meant to be sent to one
+recipient, not found.
+
+Variants are deliberately **not** listed in `robots.txt`. A `Disallow: /resume/acme-corp/`
+line would publish the very slug the variant is trying to keep quiet, and disallowing a
+page also stops a crawler ever reading the `noindex` that actually removes it. Unlinked
+plus `noindex` is the combination that works.
+
+Two limits worth being clear about:
+
+- **The slug is part of the disclosure.** `/resume/acme-corp/` tells Acme what it is
+  looking at. Prefer a role-shaped slug.
+- **Unlisted is not private.** `noindex` is a `<meta>` tag, so only the HTML page carries
+  it — the `.md` and `.pdf` are plain files, and suppressing those would need an
+  `X-Robots-Tag` header a static host can't send. Anyone with the link can read it, and
+  so can anyone they forward it to. For anything you wouldn't want forwarded, send the
+  PDF as an attachment.
+
+The `phone` and `address` frontmatter fields exist for exactly this split: a variant goes
+to one named recipient, so it is the right place for details that shouldn't sit on an
+indexed page that `ai.txt` invites training crawlers to read.
+
+`verify.mjs` covers all of it — that variants are noindex and the base is not, that no
+variant reaches the sitemap or either agent file, that nothing links to one, and that no
+copy of `_template.md` ever ships with its placeholder text intact. The variant checks
+pass vacuously when there are no variants, so the first one you add is checked without
+anyone remembering to.
+
 ## How it's put together
 
 ```
@@ -58,11 +136,16 @@ src/
                        and JSON-LD @ids, imported by astro.config.mjs too so they
                        can never drift apart
   content.config.ts    Collection schemas (see above)
+  content/resume/      The resume — one Markdown file, three published outputs
   lib/schema.ts        JSON-LD graph builders — durable types only
+  lib/resume.ts        Assembles the resume's generated contact header, shared by
+                       /resume.md and llms-full.txt so an email address has one home
   lib/bio.ts           Home page prose, shared with llms-full.txt so the agent-facing
                        text can't drift from what a human reader sees
   layouts/             BaseLayout (head, hero, landmarks), PostLayout
   pages/
+    resume/index.astro The resume page — also the source the PDF is printed from
+    resume.md.ts       The same resume as plain Markdown, for agents
     robots.txt.ts      Crawler policy, with the reasoning inline
     llms.txt.ts        Curated index, generated from the collections
     llms-full.txt.ts   Full text of every page, generated from the collections

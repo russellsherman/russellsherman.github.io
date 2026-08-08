@@ -27,12 +27,24 @@ export default defineConfig({
   integrations: [
     // R5.3 — XML sitemap, referenced from robots.txt.
     sitemap({
+      // Tailored resume variants at /resume/<slug>/ are published but
+      // unlisted — the sitemap is the one place they would otherwise announce
+      // themselves to every crawler at once. The base /resume/ is unaffected;
+      // the pattern requires a segment after it. See src/lib/resume.ts.
+      filter: (page) => !/^\/resume\/[^/]+\/$/.test(new URL(page).pathname),
       // R4.3 — llms.txt is a plain-text entry file, not an HTML page, so
       // Astro's sitemap integration does not pick it up on its own. It is
       // appended here so answer engines crawling the sitemap can find it.
+      //
+      // /resume.md and /resume.pdf are here for the same reason: the HTML
+      // page at /resume/ is picked up automatically, but its two alternate
+      // representations are not HTML routes and would otherwise be reachable
+      // only by following a link.
       customPages: [
         new URL('/llms.txt', SITE_URL).href,
         new URL('/llms-full.txt', SITE_URL).href,
+        new URL('/resume.md', SITE_URL).href,
+        new URL('/resume.pdf', SITE_URL).href,
       ],
     }),
   ],

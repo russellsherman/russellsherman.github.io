@@ -15,7 +15,7 @@
  * Usage: node scripts/verify.mjs
  */
 
-import { readFile, readdir, stat } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -126,7 +126,7 @@ const pages = allPages.filter((p) => !isRedirectStub(p));
 /** Content pages, i.e. everything except the 404. */
 const contentPages = pages.filter((p) => p.urlPath !== '/404.html');
 
-const EXPECTED_ROUTES = ['/', '/posts/site-released/'];
+const EXPECTED_ROUTES = ['/', '/posts/site-released/', '/resume/'];
 
 /** Legacy URL -> where it must now land. */
 const EXPECTED_REDIRECTS = { '/blog/': '/' };
@@ -319,6 +319,7 @@ const ALLOWED_TYPES = new Set([
   'WebPage',
   'BlogPosting',
   'Article',
+  'ProfilePage',
   'BreadcrumbList',
   'ListItem',
   'CreativeWork',
@@ -588,6 +589,251 @@ check('R5.4', 'ai.txt resolves and expresses a real decision', () => {
     'ai.txt does not explain its training decision — tags should not be cargo-culted',
   );
   return tags.join(', ');
+});
+
+/* ------------------------------------------------------------ resume */
+
+/*
+ * The resume ships as three files built from one source. The failure mode
+ * worth guarding against is not any one of them being broken — it is the
+ * three of them silently disagreeing, which is exactly what happens the first
+ * time someone edits the PDF or the Markdown directly instead of
+ * src/content/resume/resume.md. These checks assert they still agree.
+ */
+
+const resumePage = pages.find((p) => p.urlPath === '/resume/');
+const resumeMd = await readFile(path.join(DIST, 'resume.md'), 'utf8').catch(() => null);
+const resumePdf = path.join(DIST, 'resume.pdf');
+/** Magic bytes, read up front so the check below can stay synchronous. */
+const resumePdfMagic = existsSync(resumePdf)
+  ? (await readFile(resumePdf)).subarray(0, 5).toString('latin1')
+  : null;
+
+/** Tailored variants: every /resume/<slug>/ page, with its .md and .pdf. */
+const variantPages = pages.filter((p) => /^\/resume\/[^/]+\/$/.test(p.urlPath));
+const variants = await Promise.all(
+  variantPages.map(async (page) => {
+    const slug = page.urlPath.split('/')[2];
+    return {
+      slug,
+      page,
+      mdPath: `/resume/${slug}.md`,
+      pdfPath: `/resume/${slug}.pdf`,
+      md: await readFile(path.join(DIST, 'resume', `${slug}.md`), 'utf8').catch(() => null),
+      pdf: path.join(DIST, 'resume', `${slug}.pdf`),
+    };
+  }),
+);
+
+/** Every published resume Markdown file, base and variants alike. */
+const allResumeMd = [
+  { label: 'resume.md', body: resumeMd },
+  ...variants.map((v) => ({ label: `resume/${v.slug}.md`, body: v.md })),
+].filter((r) => r.body);
+
+check('resume', 'all three representations are built', () => {
+  assert(resumePage, 'no page built for /resume/');
+  assert(resumeMd, 'dist/resume.md not found');
+  assert(existsSync(resumePdf), 'dist/resume.pdf not found — did build:resume-pdf run?');
+
+  const pdf = statSync(resumePdf);
+  assert(resumePdfMagic === '%PDF-', 'dist/resume.pdf is not a PDF (bad magic bytes)');
+  assert(pdf.size > 4096, `dist/resume.pdf is only ${pdf.size} bytes — likely a blank page`);
+  return `/resume/, resume.md (${(Buffer.byteLength(resumeMd) / 1024).toFixed(1)}KB), resume.pdf (${(pdf.size / 1024).toFixed(0)}KB)`;
+});
+
+check('resume', 'each Markdown file and its HTML page carry the same content', () => {
+  const docs = [
+    { label: 'resume.md', md: resumeMd, page: resumePage },
+    ...variants.map((v) => ({ label: `resume/${v.slug}.md`, md: v.md, page: v.page })),
+  ];
+
+  let sectionCount = 0;
+  for (const { label, md, page } of docs) {
+    assert(md.startsWith('# '), `${label} does not begin with a Markdown H1`);
+
+    /*
+     * Contact details are generated into both outputs from src/consts.ts plus
+     * the entry's frontmatter overrides. Assert the two agree rather than
+     * hardcoding an address here — an entry is allowed to override the site
+     * email, and a check that pins one literal would just be re-stating the
+     * frontmatter. What must not happen is the page and the .md disagreeing.
+     */
+    for (const field of ['Location', 'Email']) {
+      const value = md.match(new RegExp(`^- ${field}: (.+)$`, 'm'))?.[1]?.trim();
+      assert(value, `${label} has no "- ${field}:" line`);
+      assert(
+        includesText(page.html, value),
+        `${page.urlPath} is missing the ${field.toLowerCase()} "${value}" that ${label} advertises`,
+      );
+    }
+
+    // Every section heading rendered on the page must exist in the Markdown.
+    const sections = page
+      .$('.resume h2')
+      .toArray()
+      .map((el) => page.$(el).text().trim())
+      .filter(Boolean);
+    assert(sections.length > 0, `${page.urlPath} renders no sections`);
+    for (const section of sections) {
+      assert(
+        includesText(md, `## ${section}`),
+        `${label} has no "## ${section}" section, but ${page.urlPath} renders one`,
+      );
+    }
+    sectionCount += sections.length;
+  }
+  return `${docs.length} resume(s), ${sectionCount} sections`;
+});
+
+check('resume', 'the HTML page advertises its Markdown and PDF alternates', () => {
+  // Two audiences: `rel="alternate"` for an agent reading the head, visible
+  // anchors for a person reading the page. A static host cannot do content
+  // negotiation, so these links are the only discovery mechanism there is.
+  const md = resumePage.$('link[rel="alternate"][type="text/markdown"]').attr('href');
+  const pdf = resumePage.$('link[rel="alternate"][type="application/pdf"]').attr('href');
+  assert(md === '/resume.md', `rel=alternate text/markdown is "${md}", expected /resume.md`);
+  assert(pdf === '/resume.pdf', `rel=alternate application/pdf is "${pdf}", expected /resume.pdf`);
+
+  assert(
+    resumePage.$('a[href="/resume.pdf"]').length > 0,
+    '/resume/ has no visible link to the PDF',
+  );
+  assert(
+    resumePage.$('a[href="/resume.md"]').length > 0,
+    '/resume/ has no visible link to the Markdown',
+  );
+  return 'rel=alternate + visible links for both';
+});
+
+check('resume', 'ProfilePage schema resolves to the site Person', () => {
+  const nodes = graphOf(resumePage).flatMap((doc) => doc['@graph']);
+  const profile = nodes.find((n) => n['@type'] === 'ProfilePage');
+  assert(profile, '/resume/ has no ProfilePage node');
+  const subjectId = profile.mainEntity?.['@id'];
+  assert(subjectId, 'ProfilePage has no mainEntity @id — nothing says who it is about');
+  assert(
+    nodes.some((n) => n['@id'] === subjectId && n['@type'] === 'Person'),
+    `ProfilePage mainEntity ${subjectId} does not resolve to a Person node`,
+  );
+  assert(
+    !Number.isNaN(Date.parse(profile.dateModified)),
+    'ProfilePage dateModified is not a valid date',
+  );
+  return `mainEntity -> ${subjectId}`;
+});
+
+check('resume', 'the resume is reachable from every page and from the agent files', () => {
+  const linking = pages.filter((p) => p.$('a[href="/resume/"]').length > 0);
+  assert(
+    linking.length === pages.length,
+    `only ${linking.length}/${pages.length} pages link to /resume/`,
+  );
+  for (const url of ['/resume/', '/resume.md', '/resume.pdf']) {
+    assert(llms.includes(url), `llms.txt does not list ${url}`);
+    const bodies = Object.values(allSitemapText).join('\n');
+    assert(bodies.includes(url), `sitemap does not list ${url}`);
+  }
+  // The full text, not just a link — llms-full.txt is the RAG surface.
+  const sections = resumePage
+    .$('.resume h2')
+    .toArray()
+    .map((el) => resumePage.$(el).text().trim());
+  for (const section of sections) {
+    assert(
+      includesText(llmsFull, section),
+      `llms-full.txt is missing the resume's "${section}" section`,
+    );
+  }
+  return 'linked site-wide, in llms.txt, in the sitemap, full text in llms-full.txt';
+});
+
+check('resume', 'no scaffold text survives in any published resume', () => {
+  // variants/_template.md is a structural scaffold. Publishing a copy that
+  // still says "Placeholder achievement" under a real name is worse than
+  // publishing nothing, so it fails the build rather than warning.
+  const marks = ['Placeholder', 'Job Title —', 'Mon YYYY', 'Start from the base resume'];
+  for (const { label, body } of allResumeMd) {
+    const found = marks.filter((m) => body.includes(m));
+    assert(
+      found.length === 0,
+      `${label} still contains template text (${found.join(', ')}) — finish it or set draft: true`,
+    );
+  }
+  return `${allResumeMd.length} resume(s) clean`;
+});
+
+/*
+ * The variant checks below are the load-bearing half of "published but
+ * unlisted". Each one covers a distinct way a tailored resume could leak: the
+ * index, the sitemap, the agent files, and an accidental inbound link. They
+ * pass vacuously when no variant exists, which is the normal state — the point
+ * is that the first variant added is checked without anyone remembering to.
+ */
+
+check('resume', 'every variant is built as page + Markdown + PDF', () => {
+  for (const v of variants) {
+    assert(v.md, `${v.mdPath} was not built for the /resume/${v.slug}/ page`);
+    assert(existsSync(v.pdf), `${v.pdfPath} was not built — did build:resume-pdf run?`);
+    assert(
+      v.page.$(`a[href="${v.pdfPath}"]`).length > 0,
+      `/resume/${v.slug}/ does not link its own PDF`,
+    );
+    assert(
+      v.page.$(`link[rel="alternate"][type="text/markdown"]`).attr('href') === v.mdPath,
+      `/resume/${v.slug}/ advertises the wrong Markdown alternate`,
+    );
+  }
+  return variants.length === 0 ? 'no variants' : variants.map((v) => v.slug).join(', ');
+});
+
+check('resume', 'variants are noindex and the base is not', () => {
+  const baseRobots = resumePage.$('meta[name="robots"]').attr('content') ?? '';
+  assert(
+    !/noindex/i.test(baseRobots),
+    `/resume/ is marked "${baseRobots}" — the public resume must stay indexable`,
+  );
+
+  for (const v of variants) {
+    const content = v.page.$('meta[name="robots"]').attr('content') ?? '';
+    assert(/noindex/i.test(content), `/resume/${v.slug}/ has no noindex (robots="${content}")`);
+    // Without noarchive a search engine that already fetched the page can keep
+    // serving a cached copy after it drops out of the index.
+    assert(
+      /noarchive/i.test(content),
+      `/resume/${v.slug}/ is noindex but not noarchive (robots="${content}")`,
+    );
+  }
+  return variants.length === 0 ? 'no variants; base indexable' : `${variants.length} noindex`;
+});
+
+check('resume', 'no variant appears in the sitemap, the agent files, or any link', () => {
+  const sitemapBodies = Object.values(allSitemapText).join('\n');
+  for (const v of variants) {
+    for (const url of [v.page.urlPath, v.mdPath, v.pdfPath]) {
+      assert(!sitemapBodies.includes(url), `sitemap lists the unlisted variant ${url}`);
+      assert(!llms.includes(url), `llms.txt lists the unlisted variant ${url}`);
+    }
+    // Body text, not just the URL — llms-full.txt is the RAG surface, and a
+    // variant reproduced there is readable by every crawler regardless of
+    // whether anything links to it.
+    const heading = v.md.split('\n').find((l) => l.startsWith('# '));
+    assert(
+      heading && !includesText(llmsFull, heading.slice(2)),
+      `llms-full.txt contains the unlisted variant "${v.slug}"`,
+    );
+
+    // Inbound links, from anywhere except the variant's own page.
+    const linking = pages
+      .filter((p) => p.urlPath !== v.page.urlPath)
+      .filter((p) => p.$(`a[href^="/resume/${v.slug}"]`).length > 0)
+      .map((p) => p.urlPath);
+    assert(
+      linking.length === 0,
+      `${linking.join(', ')} links to the unlisted variant /resume/${v.slug}/`,
+    );
+  }
+  return variants.length === 0 ? 'no variants' : `${variants.length} variant(s) unlisted`;
 });
 
 /* -------------------------------------------------------- integrity */

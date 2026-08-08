@@ -24,6 +24,12 @@ interface Props {
   jsonLd?: JsonLdNode[];
   /** Social profile links in the hero — home page only, to avoid repetition. */
   showSocial?: boolean;
+  /**
+   * Keeps a page out of search results while leaving it reachable by URL.
+   * Used by tailored resume variants (src/lib/resume.ts explains why this,
+   * and not a robots.txt Disallow, is the mechanism that works).
+   */
+  noindex?: boolean;
 }
 
 const {
@@ -34,6 +40,7 @@ const {
   lede,
   jsonLd = [],
   showSocial = false,
+  noindex = false,
 } = Astro.props;
 
 // R1.4 — exactly one canonical per page, always absolute. Derived from
@@ -54,6 +61,14 @@ const ogTitle = title === SITE_TITLE ? title : `${title} · ${SITE_TITLE}`;
     <!-- Mobile browser chrome matches the page instead of flashing white. -->
     <meta name="theme-color" content="#000000" />
     <link rel="canonical" href={canonical} />
+    {
+      /*
+       * `noarchive` alongside `noindex` matters here: without it a search
+       * engine that has already fetched an unlisted page can keep serving a
+       * cached copy of it after it drops out of the index.
+       */
+      noindex && <meta name="robots" content="noindex, nofollow, noarchive" />
+    }
 
     <link rel="icon" href="/assets/img/favicon.ico" sizes="any" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32x32.png" />
@@ -124,6 +139,13 @@ const ogTitle = title === SITE_TITLE ? title : `${title} · ${SITE_TITLE}`;
     <footer class="site-footer">
       <div class="container">
         <SocialLinks />
+        <!--
+          The only in-site link outside the post index. It is in the footer
+          rather than a nav for the reason given above — one link is not
+          navigation — but it does need to exist somewhere crawlable, because
+          a page reachable only from the sitemap is a page nothing links to.
+        -->
+        <p><a href="/resume/">resume</a></p>
         <p>
           &copy; {new Date().getFullYear()} Russell Sherman. Built with{' '}
           <a href="https://astro.build">Astro</a>.

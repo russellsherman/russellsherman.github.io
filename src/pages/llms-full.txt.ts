@@ -1,6 +1,7 @@
 import { getCollection } from 'astro:content';
 import type { APIRoute } from 'astro';
 
+import { getResume, resumeMarkdown } from '../lib/resume';
 import {
   AUTHOR_EMAIL,
   AUTHOR_LOCATION,
@@ -37,6 +38,13 @@ export const GET: APIRoute = async () => {
     'License: full text reproduced with attribution — see ' + abs('/ai.txt') + '.',
     '',
   ];
+
+  // The resume leads: it is the page most likely to be the actual answer to a
+  // question about the author, and an agent that stops reading partway through
+  // this file should have hit it already.
+  // Only the base entry. Tailored variants are unlisted by design, and a RAG
+  // surface that quietly contains all of them defeats that entirely.
+  out.push('---', '', resumeMarkdown(await getResume(), { level: '##' }));
 
   for (const post of posts) {
     out.push(

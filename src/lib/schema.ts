@@ -96,6 +96,34 @@ export function blogPostingNode(post: BlogPostingInput): JsonLdNode {
   };
 }
 
+/**
+ * R3.3 — ProfilePage for /resume/.
+ *
+ * The durable type for "this page is about a person" — it is what tells a
+ * crawler the page's subject is the Person node rather than the page itself,
+ * so the resume reinforces the same identity the home page establishes
+ * instead of introducing a second, unlinked one. `mainEntity` is the whole
+ * point of the type; without it this would just be a WebPage.
+ */
+export function profilePageNode(input: {
+  canonical: string;
+  name: string;
+  description: string;
+  dateModified: Date;
+}): JsonLdNode {
+  return {
+    '@type': 'ProfilePage',
+    '@id': `${input.canonical}#profile`,
+    url: input.canonical,
+    name: input.name,
+    description: input.description,
+    dateModified: input.dateModified.toISOString(),
+    mainEntity: { '@id': PERSON_ID },
+    isPartOf: { '@id': WEBSITE_ID },
+    inLanguage: 'en-US',
+  };
+}
+
 export function breadcrumbNode(
   trail: Array<{ name: string; url: string }>,
 ): JsonLdNode {

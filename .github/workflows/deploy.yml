@@ -65,6 +65,14 @@ jobs:
       - name: Type check
         run: npm run check
 
+      # `npm run build` prints /resume/ to dist/resume.pdf with headless
+      # Chromium (scripts/build-resume-pdf.mjs), so the browser has to be here
+      # before the build, not just in the lighthouse job below. Only Chromium
+      # is installed — playwright ships three engines and the other two are
+      # ~200MB of download this never touches.
+      - name: Install Chromium (for the resume PDF)
+        run: npx playwright install --with-deps chromium
+
       - name: Build
         run: npm run build
 

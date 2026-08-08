@@ -1,0 +1,98 @@
+---
+import { render } from 'astro:content';
+
+import BaseLayout from './BaseLayout.astro';
+import Icon from '../components/Icon.astro';
+import { breadcrumbNode, profilePageNode } from '../lib/schema';
+import { contactFor, resumeUrls, variantSlug, type ResumeEntry } from '../lib/resume';
+import { AUTHOR_NAME, SITE_URL, formatDate } from '../consts';
+
+interface Props {
+  entry: ResumeEntry;
+}
+
+/*
+ * The rendered resume — used by /resume/ and by every variant under
+ * /resume/<slug>/. It is also the source the PDF is printed from
+ * (scripts/build-resume-pdf.mjs loads these URLs and prints them), which is
+ * why the print rules live in global.css under `.resume` rather than in the
+ * PDF script: there is no separate print template to keep in sync, just this
+ * page rendered under `@media print`.
+ */
+const { entry } = Astro.props;
+
+const { Content } = await render(entry);
+const { email, location, phone } = contactFor(entry);
+const urls = resumeUrls(entry);
+const isVariant = variantSlug(entry) !== null;
+
+const canonical = new URL(Astro.url.pathname, SITE_URL).href;
+
+const jsonLd = [
+  profilePageNode({
+    canonical,
+    name: `${AUTHOR_NAME} — ${entry.data.title}`,
+    description: entry.data.description,
+    dateModified: entry.data.updatedDate,
+  }),
+  breadcrumbNode([
+    { name: 'Blog', url: `${SITE_URL}/` },
+    { name: entry.data.title, url: canonical },
+  ]),
+];
+---
+
+<BaseLayout
+  title={entry.data.title}
+  description={entry.data.description}
+  heading="resume"
+  tagline={AUTHOR_NAME.toLowerCase()}
+  lede={entry.data.headline}
+  jsonLd={jsonLd}
+  noindex={isVariant}
+>
+  {/*
+    R4 in spirit — an agent that lands on the HTML page should be told, in the
+    head, that a plain-Markdown representation of the same content exists. The
+    site is static so there is no content negotiation to do this properly;
+    `rel="alternate"` with an explicit type is the static equivalent.
+  */}
+  <Fragment slot="head">
+    <link rel="alternate" type="text/markdown" href={urls.md} title="Resume (Markdown)" />
+    <link rel="alternate" type="application/pdf" href={urls.pdf} title="Resume (PDF)" />
+  </Fragment>
+
+  <Fragment slot="hero-meta">
+    {/*
+      Contact details sit in the hero rather than in the Markdown body so they
+      survive into the PDF (where the social icon row is hidden) without being
+      duplicated in the source. Same values as the .md file's header — both go
+      through contactFor().
+    */}
+    <p class="resume-contact">
+      {location}{' · '}<a href={`mailto:${email}`}>{email}</a>
+      {phone && <Fragment>{' · '}<a href={`tel:${phone.replace(/[^+\d]/g, '')}`}>{phone}</a></Fragment>}
+      {' · '}<a href={`${SITE_URL}/`}>neverenough.info</a>
+    </p>
+
+    <p class="post-date">
+      <Icon name="calendar" />
+      <span>
+        Updated{' '}
+        <time datetime={entry.data.updatedDate.toISOString()}>
+          {formatDate(entry.data.updatedDate)}
+        </time>
+      </span>
+    </p>
+
+    {/* Hidden in print — a PDF that offers you a download link is noise. */}
+    <p class="resume-actions">
+      <a href={urls.pdf} download>Download PDF</a>{' · '}
+      <a href={urls.md}>Markdown</a>
+    </p>
+  </Fragment>
+
+  <article class="prose resume">
+    <Content />
+  </article>
+</BaseLayout>

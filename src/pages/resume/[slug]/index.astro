@@ -1,0 +1,34 @@
+---
+import type { GetStaticPaths } from 'astro';
+
+import ResumeLayout from '../../../layouts/ResumeLayout.astro';
+import { getVariants, requireVariantSlug, type ResumeEntry } from '../../../lib/resume';
+
+interface Props {
+  entry: ResumeEntry;
+}
+
+/**
+ * Tailored resume variants, at /resume/<slug>/.
+ *
+ * Published but unlisted: ResumeLayout marks every variant `noindex`, the
+ * sitemap filter in astro.config.mjs drops them, llms.txt and llms-full.txt
+ * only ever read the base entry, and nothing on the site links here. The URL
+ * is the only way in, which is the point — it is meant to be sent to one
+ * recipient, not found.
+ *
+ * That makes the slug part of the disclosure. `/resume/acme-corp/` tells Acme
+ * exactly what it is looking at; prefer a neutral, role-shaped slug.
+ */
+export const getStaticPaths: GetStaticPaths = async () => {
+  const variants = await getVariants();
+  return variants.map((entry) => ({
+    params: { slug: requireVariantSlug(entry) },
+    props: { entry },
+  }));
+};
+
+const { entry } = Astro.props;
+---
+
+<ResumeLayout entry={entry} />

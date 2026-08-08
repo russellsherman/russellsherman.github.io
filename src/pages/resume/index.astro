@@ -1,0 +1,9 @@
+---
+import ResumeLayout from '../../layouts/ResumeLayout.astro';
+import { getResume } from '../../lib/resume';
+
+/** The public resume. Variants live at /resume/<slug>/ — see [slug]/index.astro. */
+const entry = await getResume();
+---
+
+<ResumeLayout entry={entry} />

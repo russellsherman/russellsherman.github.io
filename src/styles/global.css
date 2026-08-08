@@ -535,6 +535,217 @@ pre code {
   color: var(--color-text);
 }
 
+/* ------------------------------------------------------------- resume */
+
+.resume-contact {
+  margin-top: 0.6em;
+  color: #ddd;
+}
+
+.resume-contact a {
+  color: inherit;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.resume-contact a:hover {
+  color: var(--color-inverse);
+  border-bottom-color: currentColor;
+}
+
+.resume-actions {
+  margin-top: 1.1em;
+}
+
+/*
+ * A resume is a list of dated roles, and the date line is the second most
+ * scanned thing on the page after the role itself. In Markdown that line is
+ * an emphasised paragraph directly under the h3, which is the only markup a
+ * plain-text resume can carry without stopping being plain text — so it is
+ * styled here rather than asking the source to use a table or a definition
+ * list that would read badly in /resume.md.
+ */
+.resume h3 {
+  margin-bottom: 0;
+}
+
+.resume h3 + p em {
+  display: block;
+  margin-top: 0.15em;
+  font-style: normal;
+  color: var(--color-text-muted);
+  /* fluidType(15px, 17px) */
+  font-size: clamp(15px, 14.333px + 0.2083vw, 17px);
+}
+
+.resume h3 + p {
+  margin-top: 0.2em;
+}
+
+/* Sections are the scan targets; give them a rule to land the eye on. */
+.resume h2 {
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+/* -------------------------------------------------------------- print */
+
+/*
+ * Print is a real output format here, not an afterthought: /resume.pdf is
+ * this stylesheet applied to /resume/ by headless Chromium (see
+ * scripts/build-resume-pdf.mjs). Everything below is therefore load-bearing —
+ * changing a rule here changes the PDF that gets published.
+ *
+ * The site is black-on-black by design; paper is not. The tokens are
+ * redefined rather than the rules rewritten, so the printed page inherits the
+ * same layout with an inverted palette instead of needing a second template.
+ */
+@media print {
+  :root {
+    color-scheme: light;
+
+    --color-bg: #fff;
+    --color-text: #000;
+    --color-text-muted: #444;
+    --color-heading: #000;
+    --color-link: #000;
+    --color-link-bright: #000;
+    --color-rule: #bbb;
+    --color-inverse: #000;
+    --color-inverse-muted: #444;
+    --color-code-bg: #f4f4f4;
+
+    --gutter: 0px;
+    --measure: none;
+  }
+
+  @page {
+    /* Chromium's default is ~0.4in; a resume wants a real margin. */
+    margin: 0.55in 0.6in;
+  }
+
+  body {
+    /* vw-based clamps resolve against the paper width and come out tiny. */
+    font-size: 10.5pt;
+    line-height: 1.4;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Screen chrome that has no meaning on paper. */
+  .site-header__bg,
+  .site-header::before,
+  .site-footer,
+  .skip-link,
+  .social,
+  .resume-actions {
+    display: none !important;
+  }
+
+  .site-header {
+    padding: 0 0 0.6em;
+    overflow: visible;
+    border-bottom: 1px solid var(--color-rule);
+  }
+
+  .container {
+    margin: 0;
+    max-width: none;
+  }
+
+  main {
+    padding-bottom: 0;
+  }
+
+  h1 {
+    font-size: 20pt;
+  }
+
+  .site-header__tagline {
+    font-size: 13pt;
+  }
+
+  .site-header__description,
+  .resume-contact {
+    color: #222;
+    font-size: 10pt;
+    margin-top: 0.35em;
+  }
+
+  .site-header .post-date {
+    color: #444;
+    margin-top: 0.5em;
+    font-size: 9pt;
+  }
+
+  .prose {
+    margin-top: 1.2em;
+  }
+
+  .prose > * + * {
+    margin-top: 0.7em;
+  }
+
+  .prose h2,
+  .prose h3 {
+    margin-top: 1.2em;
+  }
+
+  .resume h2 {
+    font-size: 13pt;
+  }
+
+  .resume h3 {
+    font-size: 11pt;
+  }
+
+  /*
+   * The screen size for the date line is a vw clamp, which on paper resolves
+   * against the page width and lands *above* the 11pt role heading it sits
+   * under — the sub-line ends up louder than the role. Pinned in points.
+   */
+  .resume h3 + p em {
+    font-size: 9.5pt;
+  }
+
+  a {
+    color: #000;
+    border-bottom: 0 !important;
+  }
+
+  /* Beats `.resume-contact a { color: inherit }`, which would leave the
+     contact line's links a shade lighter than the text around them. */
+  .resume-contact a {
+    color: #000;
+  }
+
+  /*
+   * A printed link is a dead end unless the URL comes with it. Scoped to the
+   * resume body: expanding every link site-wide would wreck a printed post,
+   * and mailto:/relative links already read as what they are.
+   */
+  .resume a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 8.5pt;
+    color: #555;
+    word-break: break-all;
+  }
+
+  /* Never break a role away from its dates, or a heading from its section. */
+  h2,
+  h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  li,
+  .resume h3 + p {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
 /* ------------------------------------------------------------ utility */
 
 .visually-hidden {

@@ -10,7 +10,9 @@
   "scripts": {
     "dev": "astro dev --host",
     "start": "astro dev --host",
-    "build": "astro build",
+    "build": "astro build && npm run build:resume-pdf",
+    "//build:resume-pdf": "Prints /resume/ to dist/resume.pdf with headless Chromium. Part of `build`, not a separate step, so the PDF can never be older than the Markdown it comes from. Needs `npx playwright install chromium` once.",
+    "build:resume-pdf": "node scripts/build-resume-pdf.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "verify": "node scripts/verify.mjs",

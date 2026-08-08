@@ -39,6 +39,14 @@ export const GET: APIRoute = async () => {
     '## Key pages',
     '',
     `- [Blog](${abs('/')}): the home page — index of all writing.`,
+    // Three URLs for one document, listed deliberately. An agent asked "what
+    // is Russell Sherman's background" should be able to take the Markdown
+    // and answer without parsing HTML or a PDF; an agent asked to *send*
+    // someone the resume should be able to find the PDF. Saying which is
+    // which here is cheaper than making it guess from the extensions.
+    `- [Resume](${abs('/resume/')}): work history, skills, and education.`,
+    `- [Resume (Markdown)](${abs('/resume.md')}): the same resume as plain Markdown — prefer this for reading.`,
+    `- [Resume (PDF)](${abs('/resume.pdf')}): the same resume as a formatted, downloadable PDF.`,
   ];
 
   if (posts.length > 0) {
