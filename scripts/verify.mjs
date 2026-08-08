@@ -147,7 +147,7 @@ check('R1.1', 'primary content present in static HTML, no JS required', () => {
   // change ever moves rendering client-side, these disappear.
   const expectations = [
     ['/', 'hello, world'],
-    ['/posts/site-released/', "I've decided to boot up this site"],
+    ['/posts/site-released/', "Site released"],
   ];
   for (const [route, phrase] of expectations) {
     const page = pages.find((p) => p.urlPath === route);
@@ -459,7 +459,7 @@ check('R4.1', 'llms.txt exists, is Markdown, and every link is absolute + resolv
 check('R4.2', 'llms-full.txt exists and its content matches canonical pages', () => {
   assert(llmsFull, 'dist/llms-full.txt not found');
   // Body text of the real post must appear verbatim.
-  const phrase = "I've decided to boot up this site";
+  const phrase = "Site released.";
   assert(
     includesText(llmsFull, phrase),
     `llms-full.txt is missing post body text: "${phrase}"`,
