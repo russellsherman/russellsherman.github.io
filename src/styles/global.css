@@ -509,8 +509,25 @@ pre code {
   color: var(--color-text-muted);
 }
 
+.site-footer .social {
+  /*
+   * Clearance for the padded resume link below. Without it the two tap-target
+   * boxes touch, which fails target-size on overlap even at 24px.
+   */
+  margin-bottom: 0.5em;
+}
+
 .site-footer .social a {
   color: var(--color-text-muted);
+  /*
+   * WCAG 2.5.8 / Lighthouse target-size: the box is the tap target, not the
+   * 22px glyph inside it. Centering keeps the icon where it already looked.
+   */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .site-footer .social a:hover {
@@ -533,6 +550,25 @@ pre code {
 
 .site-footer a:hover {
   color: var(--color-text);
+}
+
+/*
+ * A standalone link is a tap target, not body copy, so WCAG 2.5.8 applies to it
+ * — the inline links in the sentences below are exempt and stay as they are.
+ * Padding gets the box to 24px tall; the underline moves off border-bottom
+ * because a border rides down to the padding edge and detaches from the word.
+ */
+.site-footer .footer-cta {
+  display: inline-block;
+  padding-block: 4px;
+  border-bottom: 0;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-color: var(--color-rule);
+}
+
+.site-footer .footer-cta:hover {
+  text-decoration-color: currentColor;
 }
 
 /* ------------------------------------------------------------- resume */
