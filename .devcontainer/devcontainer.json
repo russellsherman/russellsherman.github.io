@@ -47,12 +47,20 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "github.vscode-github-actions",
-        "GitHub.vscode-pull-request-github"
+        "GitHub.vscode-pull-request-github",
+        "vscodevim.vim"
       ],
       "settings": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode",
-        "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" }
+        "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" },
+        "vim.useSystemClipboard": true,
+        "vim.hlsearch": true,
+        "vim.handleKeys": {
+          "<C-p>": false,
+          "<C-f>": false,
+          "<C-b>": false
+        }
       }
     }
   },
